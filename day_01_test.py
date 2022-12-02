@@ -1,10 +1,11 @@
+from typing import Final
 from unittest import TestCase, main
 
 from day_01 import parse_sorted_sums, part_1, part_2
 
 
 class TestDay01(TestCase):
-    _raw_input: str = '''1000
+    _RAW_INPUT: Final[str] = '''1000
 2000
 3000
 
@@ -21,7 +22,7 @@ class TestDay01(TestCase):
     _sorted_sums: list[int]
 
     def setUp(self):
-        self._sorted_sums = parse_sorted_sums(self._raw_input)
+        self._sorted_sums = parse_sorted_sums(self._RAW_INPUT)
 
     def test_parse_sorted_sums(self):
         self.assertListEqual(self._sorted_sums, [4_000, 6_000, 10_000, 11_000, 24_000])
