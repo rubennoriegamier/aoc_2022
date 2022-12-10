@@ -21,8 +21,6 @@ def parse_motion(raw_motion: str) -> tuple[int, int]:
         case 'L':
             return 0, -int(raw_count)
 
-    return raw_dir, int(raw_count)
-
 
 def part_1(motions: list[tuple[int, int]]) -> int:
     coords = {(0, 0)}
