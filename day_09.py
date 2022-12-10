@@ -39,34 +39,34 @@ def part_1(motions: list[tuple[int, int]]) -> int:
 
 
 def part_2(head_motions: list[tuple[int, int]], knots: int) -> int:
-    if knots == 2:
-        return part_1(head_motions)
+    for _ in range(knots - 2):
+        tail_motions = []
+        head_y, head_x, tail_y, tail_x = 0, 0, 0, 0
 
-    tail_motions = []
-    head_y, head_x, tail_y, tail_x = 0, 0, 0, 0
+        for offset_y, offset_x in head_motions:
+            head_y += offset_y
+            head_x += offset_x
 
-    for offset_y, offset_x in head_motions:
-        head_y += offset_y
-        head_x += offset_x
+            if abs(head_y - tail_y) * abs(head_x - tail_x) > 1:
+                move_y = abs(head_y - tail_y)
+                move_x = abs(head_x - tail_x)
+                move = min(move_y, move_x) - (move_y == move_x)
+                move_y = move * (1 if tail_y < head_y else -1)
+                move_x = move * (1 if tail_x < head_x else -1)
+                tail_motions.append((move_y, move_x))
+                tail_y += move_y
+                tail_x += move_x
 
-        if abs(head_y - tail_y) * abs(head_x - tail_x) > 1:
-            move_y = abs(head_y - tail_y)
-            move_x = abs(head_x - tail_x)
-            move = min(move_y, move_x) - (move_y == move_x)
-            move_y = move * (1 if tail_y < head_y else -1)
-            move_x = move * (1 if tail_x < head_x else -1)
-            tail_motions.append((move_y, move_x))
-            tail_y += move_y
-            tail_x += move_x
+            if abs(head_y - tail_y) > 1 or abs(head_x - tail_x) > 1:
+                move_y = max(abs(head_y - tail_y) - 1, 0) * (1 if tail_y < head_y else -1)
+                move_x = max(abs(head_x - tail_x) - 1, 0) * (1 if tail_x < head_x else -1)
+                tail_motions.append((move_y, move_x))
+                tail_y += move_y
+                tail_x += move_x
 
-        if abs(head_y - tail_y) > 1 or abs(head_x - tail_x) > 1:
-            move_y = max(abs(head_y - tail_y) - 1, 0) * (1 if tail_y < head_y else -1)
-            move_x = max(abs(head_x - tail_x) - 1, 0) * (1 if tail_x < head_x else -1)
-            tail_motions.append((move_y, move_x))
-            tail_y += move_y
-            tail_x += move_x
+        head_motions = tail_motions
 
-    return part_2(tail_motions, knots - 1)
+    return part_1(head_motions)
 
 
 if __name__ == '__main__':
