@@ -65,7 +65,7 @@ def part_2(data: list[tuple[list[int], MonkeyRules]]) -> int:
         for i, (worry_levels, rules) in enumerate(data):
             inspections[i] += len(worry_levels)
             while worry_levels:
-                worry_level = divisibles_lcm + rules.operation(worry_levels.popleft()) % divisibles_lcm
+                worry_level = rules.operation(worry_levels.popleft()) % divisibles_lcm
                 data[rules.test_true if worry_level % rules.divisible == 0 else rules.test_false][0].append(worry_level)
 
     return mul(*sorted(inspections)[-2:])
