@@ -9,9 +9,9 @@ from more_itertools import set_partitions
 
 def main():
     rates, valves = parse_valves(stdin.read())
-    valves = simplify(rates, valves)
+    times = get_times(rates, valves)
 
-    print(*part_1_and_2(rates, valves), sep='\n')
+    print(*part_1_and_2(rates, times), sep='\n')
 
 
 def parse_valves(raw_report: str) -> tuple[dict[str, int], dict[str, list[str]]]:
@@ -26,7 +26,7 @@ def parse_valves(raw_report: str) -> tuple[dict[str, int], dict[str, list[str]]]
     return rates, valves
 
 
-def simplify(rates: dict[str, int], valves: dict[str, list[str]]) -> dict[str, list[tuple[str, int]]]:
+def get_times(rates: dict[str, int], valves: dict[str, list[str]]):
     weighted_valves = nx.Graph()
 
     for valve, neighbours in valves.items():
@@ -51,28 +51,37 @@ def simplify(rates: dict[str, int], valves: dict[str, list[str]]) -> dict[str, l
         else:
             break
 
-    return {valve: [(neighbour, attrs['weight']) for neighbour, attrs in weighted_valves[valve].items()]
-            for valve in weighted_valves}
+    return {valve_from: {valve_to: time_ for valve_to, time_ in times.items() if valve_from != valve_to}
+            for valve_from, times in nx.all_pairs_dijkstra_path_length(weighted_valves)}
 
 
-def part_1_and_2(rates: dict[str, int], valves: dict[str, list[tuple[str, int]]]) -> tuple[int, int]:
+def part_1_and_2(rates: dict[str, int], times: dict[str, dict[str, int]]) -> tuple[int, int]:
     @cache
-    def move(closed: tuple[str], minutes: int, valve: str) -> int:
-        # Move
-        pressure = max((move(closed, minutes - distance, neighbour)
-                        for neighbour, distance in valves[valve]
-                        if minutes >= distance + 2), default=0)
+    def closed_minus(closed: tuple[str], valve: str) -> tuple[str]:
+        return tuple(filter(partial(ne, valve), closed))
+
+    @cache
+    def move(closed: tuple[str], time_left: int, valve: str) -> int:
+        pressure = 0
 
         # Open
-        if valve in closed:
-            pressure_ = rates[valve] * (minutes - 1)
+        if valve != 'AA':
+            time_left -= 1
+            closed = closed_minus(closed, valve)
+            pressure = rates[valve] * time_left
 
-            if minutes >= 4 and len(closed) >= 2:
-                pressure_ += move(tuple(filter(partial(ne, valve), closed)), minutes - 1, valve)
+        times_ = times[valve]
 
-            pressure = max(pressure, pressure_)
+        # Move
+        pressure_ = 0
 
-        return pressure
+        for next_valve in closed:
+            time_ = times_[next_valve]
+
+            if time_ + 2 <= time_left:
+                pressure_ = max(pressure_, move(closed, time_left - time_, next_valve))
+
+        return pressure + pressure_
 
     return move(tuple(rates), 30, 'AA'), max(move(tuple(closed_a), 26, 'AA') + move(tuple(closed_b), 26, 'AA')
                                              for closed_a, closed_b in set_partitions(rates, 2))

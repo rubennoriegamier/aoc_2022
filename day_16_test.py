@@ -1,6 +1,6 @@
 from unittest import TestCase, main
 
-from day_16 import parse_valves, part_1_and_2, simplify
+from day_16 import get_times, parse_valves, part_1_and_2
 
 
 class TestDay16(TestCase):
@@ -18,8 +18,8 @@ Valve GG has flow rate=0; tunnels lead to valves FF, HH
 Valve HH has flow rate=22; tunnel leads to valve GG
 Valve II has flow rate=0; tunnels lead to valves AA, JJ
 Valve JJ has flow rate=21; tunnel leads to valve II''')
-        valves = simplify(rates, valves)
-        self._part_1, self._part_2 = part_1_and_2(rates, valves)
+        times = get_times(rates, valves)
+        self._part_1, self._part_2 = part_1_and_2(rates, times)
 
     def test_part_1(self):
         self.assertEqual(self._part_1, 1_651)
