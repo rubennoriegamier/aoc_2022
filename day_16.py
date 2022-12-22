@@ -1,6 +1,6 @@
 from functools import cache, partial
 from itertools import combinations
-from operator import ne
+from operator import itemgetter, ne
 from sys import stdin
 
 import networkx as nx
@@ -74,17 +74,21 @@ def part_1_and_2(rates: dict[str, int], times: dict[str, dict[str, int]]) -> tup
 
         # Move
         pressure_ = 0
+        min_time = float('inf')
 
-        for next_valve in closed:
-            time_ = times_[next_valve]
+        for valve in closed:
+            time_ = times_[valve]
 
-            if time_ + 2 <= time_left:
-                pressure_ = max(pressure_, move(closed, time_left - time_, next_valve))
+            if time_ + 2 <= time_left and time_ < min_time:
+                min_time = time_
+                pressure_ = max(pressure_, move(closed, time_left - time_, valve))
 
         return pressure + pressure_
 
-    return move(tuple(rates), 30, 'AA'), max(move(tuple(closed_a), 26, 'AA') + move(tuple(closed_b), 26, 'AA')
-                                             for closed_a, closed_b in set_partitions(rates, 2))
+    valves = tuple(map(itemgetter(0), sorted(rates.items(), key=itemgetter(1), reverse=True)))
+
+    return move(valves, 30, 'AA'), max(move(tuple(closed_a), 26, 'AA') + move(tuple(closed_b), 26, 'AA')
+                                       for closed_a, closed_b in set_partitions(valves, 2))
 
 
 if __name__ == '__main__':
