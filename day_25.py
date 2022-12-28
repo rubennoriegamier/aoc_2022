@@ -19,7 +19,7 @@ def part_1(snafu_numbers: list[str]) -> str:
     min_ = ['1']
     max_ = ['2']
 
-    while not (from_snafu(min_) <= n <= from_snafu(max_)):
+    while from_snafu(max_) < n:
         min_.append('=')
         max_.append('2')
 
