@@ -1,26 +1,27 @@
 from unittest import TestCase, main
 
-from day_23 import part_1, part_2
+from day_23 import part_1_and_2
 
 
 class TestDay23(TestCase):
-    _grove: list[str]
+    _part_1: int
+    _part_2: int
 
     @classmethod
     def setUpClass(cls):
-        cls._grove = ['....#..',
-                      '..###.#',
-                      '#...#.#',
-                      '.#...##',
-                      '#.###..',
-                      '##.#.##',
-                      '.#..#..']
+        cls._part_1, cls._part_2 = part_1_and_2(['....#..',
+                                                 '..###.#',
+                                                 '#...#.#',
+                                                 '.#...##',
+                                                 '#.###..',
+                                                 '##.#.##',
+                                                 '.#..#..'], 10)
 
     def test_part_1(self):
-        self.assertEqual(part_1(self._grove), 110)
+        self.assertEqual(self._part_1, 110)
 
     def test_part_2(self):
-        self.assertEqual(part_2(self._grove), 20)
+        self.assertEqual(self._part_2, 20)
 
 
 if __name__ == '__main__':
