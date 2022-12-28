@@ -1,8 +1,10 @@
 import fileinput
-from itertools import count, islice
+from itertools import chain, count, islice
 
 import networkx as nx
 import numpy as np
+
+OFFSETS = [(0, 0), (0, -1), (1, 0), (0, 1), (-1, 0)]
 
 
 def main():
@@ -16,6 +18,8 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
     aux_n_1 = np.empty_like(blizzards_)
     aux_n_2 = np.empty_like(blizzards_)
     aux_b = np.empty_like(blizzards_, np.bool_)
+    height = blizzards_.shape[0]
+    width = blizzards_.shape[1]
     graph = nx.DiGraph()
 
     for y, row in enumerate(islice(blizzards, 1, len(blizzards) - 1)):
@@ -31,12 +35,10 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
                     blizzards_[y, x] = 0b1000
 
     graph.add_node((0, -1, 0))
+    graph.add_node((0, height, width - 1))
     graph.add_nodes_from((0, y, x) for y, x in zip(*np.where(np.equal(blizzards_, 0, out=aux_b))))
-    graph.add_node((0, blizzards_.shape[0], blizzards_.shape[1] - 1))
 
     first = blizzards_.copy()
-    enters = []
-    exits = []
 
     for i in count(1):
         # <
@@ -64,42 +66,22 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
         if np.array_equal(blizzards_, first):
             i = 0
 
-        graph.add_edge((prev_i, -1, 0), (i, -1, 0))
-        graph.add_edge((prev_i, blizzards_.shape[0], blizzards_.shape[1] - 1),
-                       (i, blizzards_.shape[0], blizzards_.shape[1] - 1))
-        for y, x in zip(*np.where(np.equal(blizzards_, 0, out=aux_b))):
-            curr_point = i, y, x
+        for y, x in chain(zip(*np.where(np.equal(blizzards_, 0, out=aux_b))), [(-1, 0), (height, width - 1)]):
+            curr_node = i, y, x
 
-            if graph.has_node(prev_point := (prev_i, y, x)):
-                graph.add_edge(prev_point, curr_point)
-            if x > 0 and graph.has_node(prev_point := (prev_i, y, x - 1)):
-                graph.add_edge(prev_point, curr_point)
-            if ((y < blizzards_.shape[0] - 1 or x == blizzards_.shape[1] - 1) and
-                    graph.has_node(prev_point := (prev_i, y + 1, x))):
-                graph.add_edge(prev_point, curr_point)
-            if x < blizzards_.shape[1] - 1 and graph.has_node(prev_point := (prev_i, y, x + 1)):
-                graph.add_edge(prev_point, curr_point)
-            if (y > 0 or x == 0) and graph.has_node(prev_point := (prev_i, y - 1, x)):
-                graph.add_edge(prev_point, curr_point)
-        if graph.has_node(prev_point := (prev_i, 0, 0)):
-            graph.add_edge(prev_point, enter := (i, -1, 0))
-            enters.append(enter)
-        if graph.has_node(prev_point := (prev_i, blizzards_.shape[0] - 1, blizzards_.shape[1] - 1)):
-            graph.add_edge(prev_point, exit_ := (i, blizzards_.shape[0], blizzards_.shape[1] - 1))
-            exits.append(exit_)
+            for y_offset, x_offset in OFFSETS:
+                if graph.has_node(prev_node := (prev_i, y + y_offset, x + x_offset)):
+                    graph.add_edge(prev_node, curr_node)
 
         if i == 0:
             break
 
-    while nodes_to_remove := [node for node, degree in graph.degree() if degree == 1]:
-        graph.remove_nodes_from(nodes_to_remove)
-
     a = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, (0, -1, 0)).items()
-            if node[1] == blizzards_.shape[0])
+            if node[1] == height)
     b = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, a[1]).items()
             if node[1] == -1)
     c = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, b[1]).items()
-            if node[1] == blizzards_.shape[0])
+            if node[1] == height)
 
     return a[0], a[0] + b[0] + c[0]
 
