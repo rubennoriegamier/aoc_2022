@@ -27,7 +27,8 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
 
         @cache
         def next_minute(time_left: int, ore_robots: int, clay_robots: int, obsidian_robots: int,
-                        ore: int, clay: int, obsidian: int):
+                        ore: int, clay: int, obsidian: int,
+                        a: bool = False, b: bool = False, c: bool = False, d: bool = False):
             if time_left < 2:
                 return 0
 
@@ -41,7 +42,7 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
                              else obsidian + obsidian_robots)
 
             # New geode robot
-            if obsidian_robots == 0:
+            if a or obsidian_robots == 0:
                 buildable -= 1
             elif ore >= geode_robot_ore_cost and obsidian >= geode_robot_obsidian_cost:
                 next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - geode_robot_ore_cost
@@ -51,9 +52,10 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
                 geodes.append(time_left - 1 + next_minute(time_left - 1,
                                                           ore_robots, clay_robots, obsidian_robots,
                                                           next_ore, next_clay, next_obsidian_))
+                a = True
 
             # New obsidian robot
-            if clay_robots == 0 or obsidian_robots == geode_robot_obsidian_cost:
+            if b or clay_robots == 0 or obsidian_robots == geode_robot_obsidian_cost:
                 buildable -= 1
             elif ore >= obsidian_robot_ore_cost and clay >= obsidian_robot_clay_cost:
                 next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - obsidian_robot_ore_cost
@@ -63,9 +65,10 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
                 geodes.append(next_minute(time_left - 1,
                                           ore_robots, clay_robots, obsidian_robots + 1,
                                           next_ore, next_clay_, next_obsidian))
+                b = True
 
             # New clay robot
-            if clay_robots == obsidian_robot_clay_cost or obsidian_robots == geode_robot_obsidian_cost:
+            if c or clay_robots == obsidian_robot_clay_cost or obsidian_robots == geode_robot_obsidian_cost:
                 buildable -= 1
             elif ore >= clay_robot_ore_cost:
                 next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - clay_robot_ore_cost
@@ -73,9 +76,10 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
                 geodes.append(next_minute(time_left - 1,
                                           ore_robots, clay_robots + 1, obsidian_robots,
                                           next_ore, next_clay, next_obsidian))
+                c = True
 
             # New ore robot
-            if ore_robots == max_ore_robots:
+            if d or ore_robots == max_ore_robots:
                 buildable -= 1
             elif ore >= ore_robot_ore_cost:
                 next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - ore_robot_ore_cost
@@ -83,6 +87,7 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
                 geodes.append(next_minute(time_left - 1,
                                           ore_robots + 1, clay_robots, obsidian_robots,
                                           next_ore, next_clay, next_obsidian))
+                d = True
 
             # No new robot
             if len(geodes) < buildable:
@@ -90,7 +95,7 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
 
                 geodes.append(next_minute(time_left - 1,
                                           ore_robots, clay_robots, obsidian_robots,
-                                          next_ore, next_clay, next_obsidian))
+                                          next_ore, next_clay, next_obsidian, a, b, c, d))
 
             return max(geodes, default=0)
 
