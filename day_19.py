@@ -23,58 +23,80 @@ def part_1_and_2(blueprints: list[tuple[int, int, tuple[int, int], tuple[int, in
 
     for id_, (ore_robot_ore_cost, clay_robot_ore_cost, (obsidian_robot_ore_cost, obsidian_robot_clay_cost),
               (geode_robot_ore_cost, geode_robot_obsidian_cost)) in enumerate(blueprints, 1):
+        max_ore_robots = max(clay_robot_ore_cost, obsidian_robot_ore_cost, geode_robot_ore_cost)
+
         @cache
         def next_minute(time_left: int, ore_robots: int, clay_robots: int, obsidian_robots: int,
                         ore: int, clay: int, obsidian: int):
+            if time_left < 2:
+                return 0
+
             geodes = []
-            n = 4
+            buildable = 4
 
-            if ore >= geode_robot_ore_cost and obsidian >= geode_robot_obsidian_cost:
-                if time_left >= 3:
-                    geodes.append(time_left - 1 + next_minute(time_left - 1,
-                                                              ore_robots, clay_robots, obsidian_robots,
-                                                              ore + ore_robots - geode_robot_ore_cost,
-                                                              clay + clay_robots,
-                                                              obsidian + obsidian_robots - geode_robot_obsidian_cost))
-                else:
-                    geodes.append(time_left - 1)
-            elif time_left >= 3:
-                if obsidian_robots == 0:
-                    n -= 1
+            next_clay = (clay_robots
+                         if clay_robots == obsidian_robot_clay_cost or obsidian_robots == geode_robot_obsidian_cost
+                         else clay + clay_robots)
+            next_obsidian = (obsidian_robots if obsidian_robots == geode_robot_obsidian_cost
+                             else obsidian + obsidian_robots)
 
-                if ore >= obsidian_robot_ore_cost and clay >= obsidian_robot_clay_cost:
-                    geodes.append(next_minute(time_left - 1,
-                                              ore_robots, clay_robots, obsidian_robots + 1,
-                                              ore + ore_robots - obsidian_robot_ore_cost,
-                                              clay + clay_robots - obsidian_robot_clay_cost,
-                                              obsidian + obsidian_robots))
-                elif clay_robots == 0:
-                    n -= 1
-                if ore >= clay_robot_ore_cost:
-                    geodes.append(next_minute(time_left - 1,
-                                              ore_robots, clay_robots + 1, obsidian_robots,
-                                              ore + ore_robots - clay_robot_ore_cost,
-                                              clay + clay_robots,
-                                              obsidian + obsidian_robots))
-                if ore >= ore_robot_ore_cost:
-                    geodes.append(next_minute(time_left - 1,
-                                              ore_robots + 1, clay_robots, obsidian_robots,
-                                              ore + ore_robots - ore_robot_ore_cost,
-                                              clay + clay_robots,
-                                              obsidian + obsidian_robots))
-                if len(geodes) < n:
-                    geodes.append(next_minute(time_left - 1,
-                                              ore_robots, clay_robots, obsidian_robots,
-                                              ore + ore_robots,
-                                              clay + clay_robots,
-                                              obsidian + obsidian_robots))
+            # New geode robot
+            if obsidian_robots == 0:
+                buildable -= 1
+            elif ore >= geode_robot_ore_cost and obsidian >= geode_robot_obsidian_cost:
+                next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - geode_robot_ore_cost
+                next_obsidian_ = (obsidian_robots if obsidian_robots == geode_robot_obsidian_cost
+                                  else obsidian + obsidian_robots - geode_robot_obsidian_cost)
+
+                geodes.append(time_left - 1 + next_minute(time_left - 1,
+                                                          ore_robots, clay_robots, obsidian_robots,
+                                                          next_ore, next_clay, next_obsidian_))
+
+            # New obsidian robot
+            if clay_robots == 0 or obsidian_robots == geode_robot_obsidian_cost:
+                buildable -= 1
+            elif ore >= obsidian_robot_ore_cost and clay >= obsidian_robot_clay_cost:
+                next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - obsidian_robot_ore_cost
+                next_clay_ = (clay_robots if clay_robots == obsidian_robot_clay_cost
+                              else clay + clay_robots - obsidian_robot_clay_cost)
+
+                geodes.append(next_minute(time_left - 1,
+                                          ore_robots, clay_robots, obsidian_robots + 1,
+                                          next_ore, next_clay_, next_obsidian))
+
+            # New clay robot
+            if clay_robots == obsidian_robot_clay_cost or obsidian_robots == geode_robot_obsidian_cost:
+                buildable -= 1
+            elif ore >= clay_robot_ore_cost:
+                next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - clay_robot_ore_cost
+
+                geodes.append(next_minute(time_left - 1,
+                                          ore_robots, clay_robots + 1, obsidian_robots,
+                                          next_ore, next_clay, next_obsidian))
+
+            # New ore robot
+            if ore_robots == max_ore_robots:
+                buildable -= 1
+            elif ore >= ore_robot_ore_cost:
+                next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots - ore_robot_ore_cost
+
+                geodes.append(next_minute(time_left - 1,
+                                          ore_robots + 1, clay_robots, obsidian_robots,
+                                          next_ore, next_clay, next_obsidian))
+
+            # No new robot
+            if len(geodes) < buildable:
+                next_ore = ore_robots if ore_robots == max_ore_robots else ore + ore_robots
+
+                geodes.append(next_minute(time_left - 1,
+                                          ore_robots, clay_robots, obsidian_robots,
+                                          next_ore, next_clay, next_obsidian))
 
             return max(geodes, default=0)
 
         part_1 += id_ * next_minute(24, 1, 0, 0, 0, 0, 0)
         if id_ <= 3:
             part_2 *= next_minute(32, 1, 0, 0, 0, 0, 0)
-        next_minute.cache_clear()
 
     return part_1, part_2
 
