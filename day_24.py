@@ -1,7 +1,7 @@
 import fileinput
 from itertools import chain, count, islice
+from time import time
 
-import networkx as nx
 import numpy as np
 
 OFFSETS = [(0, 0), (0, -1), (1, 0), (0, 1), (-1, 0)]
@@ -10,7 +10,9 @@ OFFSETS = [(0, 0), (0, -1), (1, 0), (0, 1), (-1, 0)]
 def main():
     blizzards: list[str] = list(map(str.rstrip, fileinput.input()))
 
+    t = time()
     print(*part_1_and_2(blizzards), sep='\n')
+    print(round((time() - t) * 1_000, 2))
 
 
 def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
@@ -20,7 +22,9 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
     aux_b = np.empty_like(blizzards_, np.bool_)
     height = blizzards_.shape[0]
     width = blizzards_.shape[1]
-    graph = nx.DiGraph()
+    prev_nodes = {(-1, 0)}
+    objetives = [height, -1, height]
+    steps = []
 
     for y, row in enumerate(islice(blizzards, 1, len(blizzards) - 1)):
         for x, tile in enumerate(islice(row, 1, len(row) - 1)):
@@ -33,12 +37,6 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
                     blizzards_[y, x] = 0b0100
                 case '^':
                     blizzards_[y, x] = 0b1000
-
-    graph.add_node((0, -1, 0))
-    graph.add_node((0, height, width - 1))
-    graph.add_nodes_from((0, y, x) for y, x in zip(*np.where(np.equal(blizzards_, 0, out=aux_b))))
-
-    first = blizzards_.copy()
 
     for i in count(1):
         # <
@@ -61,29 +59,30 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
         aux_n_1[:, 1:-1] |= aux_n_2[:, 1:-1]
 
         aux_n_1, blizzards_ = blizzards_, aux_n_1
+        curr_nodes = set()
 
-        prev_i = i - 1
-        if np.array_equal(blizzards_, first):
-            i = 0
-
-        for y, x in chain(zip(*np.where(np.equal(blizzards_, 0, out=aux_b))), [(-1, 0), (height, width - 1)]):
-            curr_node = i, y, x
+        for curr_node in chain(zip(*np.where(np.equal(blizzards_, 0, out=aux_b))), [(-1, 0), (height, width - 1)]):
+            # noinspection PyTupleAssignmentBalance
+            y, x = curr_node
 
             for y_offset, x_offset in OFFSETS:
-                if graph.has_node(prev_node := (prev_i, y + y_offset, x + x_offset)):
-                    graph.add_edge(prev_node, curr_node)
+                if (y + y_offset, x + x_offset) in prev_nodes:
+                    curr_nodes.add(curr_node)
+                    break
+            else:
+                continue
 
-        if i == 0:
+            if y == objetives[-1]:
+                steps.append(i)
+                curr_nodes = {(height, width - 1) if objetives.pop() == height else (-1, 0)}
+                break
+
+        if not objetives:
             break
 
-    a = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, (0, -1, 0)).items()
-            if node[1] == height)
-    b = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, a[1]).items()
-            if node[1] == -1)
-    c = min((time_, node) for node, time_ in nx.single_source_shortest_path_length(graph, b[1]).items()
-            if node[1] == height)
+        prev_nodes = curr_nodes
 
-    return a[0], a[0] + b[0] + c[0]
+    return steps[0], steps[-1]
 
 
 if __name__ == '__main__':
