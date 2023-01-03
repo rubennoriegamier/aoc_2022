@@ -4,8 +4,6 @@ from time import time
 
 import numpy as np
 
-OFFSETS = [(0, 0), (0, -1), (1, 0), (0, 1), (-1, 0)]
-
 
 def main():
     blizzards: list[str] = list(map(str.rstrip, fileinput.input()))
@@ -61,21 +59,21 @@ def part_1_and_2(blizzards: list[str]) -> tuple[int, int]:
         aux_n_1, blizzards_ = blizzards_, aux_n_1
         curr_nodes = set()
 
-        for curr_node in chain(zip(*np.where(np.equal(blizzards_, 0, out=aux_b))), [(-1, 0), (height, width - 1)]):
+        for curr_node in chain([(-1, 0), (height, width - 1)], zip(*np.where(np.equal(blizzards_, 0, out=aux_b)))):
             # noinspection PyTupleAssignmentBalance
             y, x = curr_node
 
-            for y_offset, x_offset in OFFSETS:
-                if (y + y_offset, x + x_offset) in prev_nodes:
-                    curr_nodes.add(curr_node)
+            if (curr_node in prev_nodes
+                    or (y - 1, x) in prev_nodes
+                    or (y + 1, x) in prev_nodes
+                    or (y, x - 1) in prev_nodes
+                    or (y, x + 1) in prev_nodes):
+                if y == objetives[-1]:
+                    steps.append(i)
+                    curr_nodes = {(height, width - 1) if objetives.pop() == height else (-1, 0)}
                     break
-            else:
-                continue
-
-            if y == objetives[-1]:
-                steps.append(i)
-                curr_nodes = {(height, width - 1) if objetives.pop() == height else (-1, 0)}
-                break
+                else:
+                    curr_nodes.add(curr_node)
 
         if not objetives:
             break
