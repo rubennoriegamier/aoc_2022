@@ -33,7 +33,6 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
     part_1 = None
 
     for round_ in count(1):
-        elfs_ = set()
         moves = {}
 
         for elf in elfs:
@@ -60,45 +59,29 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
                     match check:
                         case 'N':
                             if not nw_check and not n_check and not ne_check:
-                                if (other := moves.pop(n, None)) is None:
+                                if moves.pop(n, None) is None:
                                     moves[n] = elf
-                                else:
-                                    elfs_.add(elf)
-                                    elfs_.add(other)
                                 break
                         case 'S':
                             if not sw_check and not s_check and not se_check:
-                                if (other := moves.pop(s, None)) is None:
+                                if moves.pop(s, None) is None:
                                     moves[s] = elf
-                                else:
-                                    elfs_.add(elf)
-                                    elfs_.add(other)
                                 break
                         case 'W':
                             if not nw_check and not w_check and not sw_check:
-                                if (other := moves.pop(w, None)) is None:
+                                if moves.pop(w, None) is None:
                                     moves[w] = elf
-                                else:
-                                    elfs_.add(elf)
-                                    elfs_.add(other)
                                 break
                         case 'E':
                             if not ne_check and not e_check and not se_check:
-                                if (other := moves.pop(e, None)) is None:
+                                if moves.pop(e, None) is None:
                                     moves[e] = elf
-                                else:
-                                    elfs_.add(elf)
-                                    elfs_.add(other)
                                 break
-                else:
-                    elfs_.add(elf)
-            else:
-                elfs_.add(elf)
 
         if not moves:
             return part_1, round_
 
-        elfs = elfs_
+        elfs.difference_update(moves.values())
         elfs.update(moves)
         checks.rotate(-1)
 
