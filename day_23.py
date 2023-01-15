@@ -1,5 +1,4 @@
 import fileinput
-from collections import deque
 from itertools import count
 
 import numpy as np
@@ -22,7 +21,6 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
     for y, row in enumerate(grove):
         for x, tile in enumerate(row):
             grove_[y, x] = tile == '#'
-    checks = deque(['N', 'S', 'W', 'E'])
     part_1 = None
 
     for round_ in count(1):
@@ -49,29 +47,29 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
         w = we[:, :-2] & valid
         e = we[:, 2:] & valid
 
-        match checks[0]:
-            case 'N':
+        match round_ % 4:
+            case 1:
                 s[n] = False
                 w[n] = False
                 w[s] = False
                 e[n] = False
                 e[s] = False
                 e[w] = False
-            case 'S':
+            case 2:
                 w[s] = False
                 e[s] = False
                 e[w] = False
                 n[s] = False
                 n[w] = False
                 n[e] = False
-            case 'W':
+            case 3:
                 e[w] = False
                 n[w] = False
                 n[e] = False
                 s[w] = False
                 s[e] = False
                 s[n] = False
-            case 'E':
+            case 0:
                 n[e] = False
                 s[e] = False
                 s[n] = False
@@ -98,12 +96,24 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
         grove_[1:-1, 1:-1][e] = False
         grove_[1:-1, 2:][e] = True
 
-        checks.rotate(-1)
-
         if round_ == rounds:
             height, width = grove_.shape
-            height -= (grove_[0].any() ^ 1) + (grove_[-1].any() ^ 1)
-            width -= (grove_[:, 0].any() ^ 1) + (grove_[:, -1].any() ^ 1)
+            for y in range(height):
+                if grove_[y].any():
+                    break
+                height -= 1
+            for y in range(-1, -height - 1, -1):
+                if grove_[y].any():
+                    break
+                height -= 1
+            for x in range(width):
+                if grove_[:, x].any():
+                    break
+                width -= 1
+            for x in range(-1, -width - 1, -1):
+                if grove_[:, x].any():
+                    break
+                width -= 1
             part_1 = height * width - grove_.sum()
 
 
