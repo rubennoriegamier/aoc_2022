@@ -1,7 +1,11 @@
 import fileinput
 from collections import deque
 from itertools import count
-from operator import itemgetter
+
+import numpy as np
+# noinspection PyProtectedMember
+from numpy.lib.stride_tricks import as_strided
+from scipy.signal import convolve2d
 
 
 def main():
@@ -10,84 +14,97 @@ def main():
     print(*part_1_and_2(grove, 10), sep='\n')
 
 
-def print_elfs(elfs: set[tuple[int, int]]):
-    y_min = min(map(itemgetter(0), elfs))
-    y_max = max(map(itemgetter(0), elfs))
-    x_min = min(map(itemgetter(1), elfs))
-    x_max = max(map(itemgetter(1), elfs))
-
-    grid = [['.'] * (x_max - x_min + 1) for _ in range(y_max - y_min + 1)]
-
-    for elf_y, elf_x in elfs:
-        grid[elf_y - y_min][elf_x - x_min] = '#'
-
-    print(*map(''.join, grid), sep='\n')
-
-
 def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]:
-    elfs = {(y, x)
-            for y, row in enumerate(grove)
-            for x, tile in enumerate(row)
-            if tile == '#'}
+    around = np.array([[1, 1, 1],
+                       [1, 0, 1],
+                       [1, 1, 1]], np.uint8)
+    grove_ = np.empty((len(grove), len(grove[0])), np.bool_)
+    for y, row in enumerate(grove):
+        for x, tile in enumerate(row):
+            grove_[y, x] = tile == '#'
     checks = deque(['N', 'S', 'W', 'E'])
     part_1 = None
 
     for round_ in count(1):
-        moves = {}
+        pad_north = grove_[0].any()
+        pad_south = grove_[-1].any()
+        pad_west = grove_[:, 0].any()
+        pad_east = grove_[:, -1].any()
 
-        for elf in elfs:
-            elf_y, elf_x = elf
-            nw = elf_y - 1, elf_x - 1
-            nw_check = nw in elfs
-            n = elf_y - 1, elf_x
-            n_check = n in elfs
-            ne = elf_y - 1, elf_x + 1
-            ne_check = ne in elfs
-            sw = elf_y + 1, elf_x - 1
-            sw_check = sw in elfs
-            s = elf_y + 1, elf_x
-            s_check = s in elfs
-            se = elf_y + 1, elf_x + 1
-            se_check = se in elfs
-            w = elf_y, elf_x - 1
-            w_check = w in elfs
-            e = elf_y, elf_x + 1
-            e_check = e in elfs
+        if pad_north or pad_south or pad_west or pad_east:
+            grove_ = np.pad(grove_, ((int(pad_north), int(pad_south)), (int(pad_west), int(pad_east))))
 
-            if nw_check or n_check or ne_check or sw_check or s_check or se_check or w_check or e_check:
-                for check in checks:
-                    match check:
-                        case 'N':
-                            if not nw_check and not n_check and not ne_check:
-                                if moves.pop(n, None) is None:
-                                    moves[n] = elf
-                                break
-                        case 'S':
-                            if not sw_check and not s_check and not se_check:
-                                if moves.pop(s, None) is None:
-                                    moves[s] = elf
-                                break
-                        case 'W':
-                            if not nw_check and not w_check and not sw_check:
-                                if moves.pop(w, None) is None:
-                                    moves[w] = elf
-                                break
-                        case 'E':
-                            if not ne_check and not e_check and not se_check:
-                                if moves.pop(e, None) is None:
-                                    moves[e] = elf
-                                break
+        valid = convolve2d(grove_, around, 'valid') > 0
+        valid &= grove_[1:-1, 1:-1]
 
-        if not moves:
+        ns = as_strided(grove_, (grove_.shape[0], grove_.shape[1] - 2, 3),
+                        (grove_.strides[0], 1, 1)).any(2)
+        ns ^= True
+        we = as_strided(grove_, (grove_.shape[0] - 2, grove_.shape[1], 3),
+                        (grove_.strides[0], 1, grove_.strides[0])).any(2)
+        we ^= True
+
+        n = ns[:-2] & valid
+        s = ns[2:] & valid
+        w = we[:, :-2] & valid
+        e = we[:, 2:] & valid
+
+        match checks[0]:
+            case 'N':
+                s[n] = False
+                w[n] = False
+                w[s] = False
+                e[n] = False
+                e[s] = False
+                e[w] = False
+            case 'S':
+                w[s] = False
+                e[s] = False
+                e[w] = False
+                n[s] = False
+                n[w] = False
+                n[e] = False
+            case 'W':
+                e[w] = False
+                n[w] = False
+                n[e] = False
+                s[w] = False
+                s[e] = False
+                s[n] = False
+            case 'E':
+                n[e] = False
+                s[e] = False
+                s[n] = False
+                w[e] = False
+                w[n] = False
+                w[s] = False
+
+        n_ = n.copy()
+        n[2:][s[:-2]] = False
+        s[:-2][n_[2:]] = False
+        w_ = w.copy()
+        w[:, 2:][e[:, :-2]] = False
+        e[:, :-2][w_[:, 2:]] = False
+
+        if not n.any() and not s.any() and not w.any() and not e.any():
             return part_1, round_
 
-        elfs.difference_update(moves.values())
-        elfs.update(moves)
+        grove_[1:-1, 1:-1][n] = False
+        grove_[:-2, 1:-1][n] = True
+        grove_[1:-1, 1:-1][s] = False
+        grove_[2:, 1:-1][s] = True
+        grove_[1:-1, 1:-1][w] = False
+        grove_[1:-1, :-2][w] = True
+        grove_[1:-1, 1:-1][e] = False
+        grove_[1:-1, 2:][e] = True
+
         checks.rotate(-1)
 
         if round_ == rounds:
-            part_1 = (max(map(itemgetter(0), elfs)) - min(map(itemgetter(0), elfs)) + 1) * \
-                     (max(map(itemgetter(1), elfs)) - min(map(itemgetter(1), elfs)) + 1) - len(elfs)
+            height, width = grove_.shape
+            height -= (grove_[0].any() ^ 1) + (grove_[-1].any() ^ 1)
+            width -= (grove_[:, 0].any() ^ 1) + (grove_[:, -1].any() ^ 1)
+            part_1 = height * width - grove_.sum()
 
 
 if __name__ == '__main__':
