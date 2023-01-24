@@ -1,5 +1,7 @@
 import fileinput
+from functools import partial
 from itertools import count
+from operator import eq
 
 import numpy as np
 # noinspection PyProtectedMember
@@ -13,34 +15,29 @@ def main():
     print(*part_1_and_2(grove, 10), sep='\n')
 
 
-def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]:
+def part_1_and_2(grove: list[str], rounds: int) -> tuple[int, int]:
     around = np.array([[1, 1, 1],
                        [1, 0, 1],
                        [1, 1, 1]], np.uint8)
-    grove_ = np.empty((len(grove), len(grove[0])), np.bool_)
-    for y, row in enumerate(grove):
-        for x, tile in enumerate(row):
-            grove_[y, x] = tile == '#'
+    grove = np.array(list(map(list, map(partial(map, partial(eq, '#')), grove))))
     part_1 = None
 
     for round_ in count(1):
-        pad_north = grove_[0].any()
-        pad_south = grove_[-1].any()
-        pad_west = grove_[:, 0].any()
-        pad_east = grove_[:, -1].any()
+        pad_north = grove[0].any()
+        pad_south = grove[-1].any()
+        pad_west = grove[:, 0].any()
+        pad_east = grove[:, -1].any()
 
         if pad_north or pad_south or pad_west or pad_east:
-            grove_ = np.pad(grove_, ((int(pad_north), int(pad_south)), (int(pad_west), int(pad_east))))
+            grove = np.pad(grove, ((int(pad_north), int(pad_south)), (int(pad_west), int(pad_east))))
 
-        valid = convolve2d(grove_, around, 'valid') > 0
-        valid &= grove_[1:-1, 1:-1]
+        valid = np.logical_and(convolve2d(grove, around, 'valid'), grove[1:-1, 1:-1])
 
-        ns = as_strided(grove_, (grove_.shape[0], grove_.shape[1] - 2, 3),
-                        (grove_.strides[0], 1, 1)).any(2)
-        ns ^= True
-        we = as_strided(grove_, (grove_.shape[0] - 2, grove_.shape[1], 3),
-                        (grove_.strides[0], 1, grove_.strides[0])).any(2)
-        we ^= True
+        igrove = ~grove
+        ns = as_strided(igrove, (igrove.shape[0], igrove.shape[1] - 2, 3),
+                        (igrove.strides[0], 1, 1)).all(2)
+        we = as_strided(igrove, (igrove.shape[0] - 2, igrove.shape[1], 3),
+                        (igrove.strides[0], 1, igrove.strides[0])).all(2)
 
         n = ns[:-2] & valid
         s = ns[2:] & valid
@@ -87,34 +84,34 @@ def part_1_and_2(grove: list[str], rounds: int | None = None) -> tuple[int, int]
         if not n.any() and not s.any() and not w.any() and not e.any():
             return part_1, round_
 
-        grove_[1:-1, 1:-1][n] = False
-        grove_[:-2, 1:-1][n] = True
-        grove_[1:-1, 1:-1][s] = False
-        grove_[2:, 1:-1][s] = True
-        grove_[1:-1, 1:-1][w] = False
-        grove_[1:-1, :-2][w] = True
-        grove_[1:-1, 1:-1][e] = False
-        grove_[1:-1, 2:][e] = True
+        grove[1:-1, 1:-1][n] = False
+        grove[:-2, 1:-1][n] = True
+        grove[1:-1, 1:-1][s] = False
+        grove[2:, 1:-1][s] = True
+        grove[1:-1, 1:-1][w] = False
+        grove[1:-1, :-2][w] = True
+        grove[1:-1, 1:-1][e] = False
+        grove[1:-1, 2:][e] = True
 
         if round_ == rounds:
-            height, width = grove_.shape
+            height, width = grove.shape
             for y in range(height):
-                if grove_[y].any():
+                if grove[y].any():
                     break
                 height -= 1
             for y in range(-1, -height - 1, -1):
-                if grove_[y].any():
+                if grove[y].any():
                     break
                 height -= 1
             for x in range(width):
-                if grove_[:, x].any():
+                if grove[:, x].any():
                     break
                 width -= 1
             for x in range(-1, -width - 1, -1):
-                if grove_[:, x].any():
+                if grove[:, x].any():
                     break
                 width -= 1
-            part_1 = height * width - grove_.sum()
+            part_1 = height * width - grove.sum()
 
 
 if __name__ == '__main__':
